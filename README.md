@@ -10,6 +10,6 @@ cd spring-boot-todomvc
 
 mvn spring-boot:run
 
-go to http://localhost:8080/index.html#/
+go to http://localhost:8080/index.html
 
 
