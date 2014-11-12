@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:p="http://www.springframework.org/schema/p"
+
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+          http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+          http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+          http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+          http://www.springframework.org/schema/security
+   		  http://www.springframework.org/schema/security/spring-security-3.2.xsd
+">
+
+
+    <bean id="placeholderConfigurer"
+              class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="ignoreUnresolvablePlaceholders" value="false" />
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+        <property name="ignoreResourceNotFound" value="false" />
+        <property name="locations">
+            <list>
+                <value>classpath*:/application.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName">
+            <value>${jdbc.driver}</value>
+        </property>
+        <property name="url">
+            <value>${jdbc.url}</value>
+        </property>
+        <property name="username">
+            <value>${jdbc.username}</value>
+        </property>
+        <property name="password">
+            <value>${jdbc.password}</value>
+        </property>
+    </bean>
+
+    <tx:annotation-driven transaction-manager="transactionManager" />
+
+    <!-- setup transaction manager -->
+    <bean id="transactionManager"
+              class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+        <property name="sessionFactory">
+            <ref bean="sessionFactory" />
+        </property>
+    </bean>
+
+    <!-- hibernate session factory -->
+    <bean id="sessionFactory"
+              class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.hbm2ddl.auto">update</prop>
+                <prop key="hibernate.dialect">${hibernate.dialect}</prop>
+                <prop key="hibernate.connection.pool_size">5</prop>
+                <prop key="hibernate.current_session_context_class">org.springframework.orm.hibernate4.SpringSessionContext
+                </prop>
+                <prop key="hibernate.show_sql">true</prop>
+                <prop key="hibernate.cglib.use_reflection_optimizer">true</prop>
+                <prop key="hibernate.cache.provider_class">org.hibernate.cache.EhCacheProvider</prop>
+                <prop key="hibernate.hibernate.cache.use_query_cache">true</prop>
+            </props>
+        </property>
+        <property name="packagesToScan">
+            <list>
+                <value>com.teampokercontrol.domain</value>
+            </list>
+        </property>
+    </bean>
+	
+    <context:annotation-config />  
+    <context:component-scan base-package="com.teampokercontrol.bean" />
+    <context:component-scan base-package="com.teampokercontrol.dao" />
+    <context:component-scan base-package="com.teampokercontrol.service" />
+    <context:component-scan base-package="com.teampokercontrol.filters" />
+	
+    <!-- Implementacao de Seguranca Spring Security -->
+    <security:http auto-config="false" use-expressions="true" access-denied-page="/pages/403.xhtml" entry-point-ref="authenticationEntryPoint" >
+        <security:intercept-url pattern="/pages/index.xhtml" access="isAuthenticated()"/>
+        <security:intercept-url pattern="/usuario/cadastroUsuario.xhtml" access="hasAnyRole('USUARIO, GERENTE, ADMIN')"/>
+        <security:intercept-url pattern="/usuario/listaUsuarios.xhtml" access="hasAnyRole('GERENTE, ADMIN')"/>
+        <security:intercept-url pattern="/usuario/alterarSenha.xhtml" access="hasAnyRole('USUARIO, GERENTE, ADMIN')"/>
+        <security:intercept-url pattern="/time/**" access="hasAnyRole('GERENTE, ADMIN')"/>
+        <security:intercept-url pattern="/admin/**" access="hasRole('ADMIN')"/>
+        <security:intercept-url pattern="/torneio/**" access="hasAnyRole('USUARIO, GERENTE, ADMIN')"/>
+        <security:intercept-url pattern="/transferencia/**" access="hasAnyRole('GERENTE, ADMIN')"/>
+        <security:logout invalidate-session="true" logout-success-url="/pages/login.xhtml" logout-url="/logout"/>
+        <security:custom-filter ref="authenticationFilter" position="FORM_LOGIN_FILTER"/>
+    </security:http>
+ 
+    <bean id="authenticationFilter" class="com.teampokercontrol.filters.AutenticacaoFilter" p:authenticationManager-ref="authenticationManager"/>
+    <bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint" p:loginFormUrl="/pages/login.xhtml"/>
+    <security:authentication-manager alias="authenticationManager" />
+   
+	
+</beans>
